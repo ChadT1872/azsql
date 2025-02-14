@@ -6,14 +6,6 @@ import time;
 import logging;
 import pandas as pd;
 
-# Load environment variables
-
-SERVER=os.environ["SERVER"];
-DATABASE=os.environ["DATABASE"];
-TENANT_ID=os.environ["TENANT_ID"];
-CLIENT_ID=os.environ["NEXAIR_APP_CLIENT_ID"];
-CLIENT_CREDENTIAL=os.environ["NEXAIR_APP_CLIENT_SECRET"];
-
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -30,15 +22,21 @@ class AzSql (object):
     '''
     
     # Initialize the class with the server and database
-    def __init__(self, server=SERVER, database=DATABASE) -> None:
-        '''
-        This method initializes the class with the server and database parameters.\n
-        params:\n
-        <b>server</b>: str, the server name\n
-        <b>database</b>: str, the database name\n
-        '''
-        self.server = server;
-        self.database = database;
+    def __init__(self, server: str, database: str, tenant_id: str, client_id: str, client_credential: str) -> None:
+        """
+        Initializes the class with the server, database, tenant_id, client_id, and client_credential.
+        
+        :param server: The server name.
+        :param database: The database name.
+        :param tenant_id: The Azure tenant ID.
+        :param client_id: The Azure client ID.
+        :param client_credential: The Azure client credential/secret.
+        """
+        self.server = server
+        self.database = database
+        self.tenant_id = tenant_id
+        self.client_id = client_id
+        self.client_credential = client_credential
 
 
     # Configure the SQL connection string
@@ -49,9 +47,9 @@ class AzSql (object):
         '''
         try:
             creds = ConfidentialClientApplication(
-                client_id=CLIENT_ID, 
-                authority=f'https://login.microsoftonline.com/{TENANT_ID}',
-                client_credential=CLIENT_CREDENTIAL
+                client_id=self.client_id, 
+                authority=f'https://login.microsoftonline.com/{self.tenant_id}',
+                client_credential=self.client_credential
             );
             token = creds.acquire_token_for_client(scopes=['https://database.windows.net//.default']);
             tokenb = bytes(token['access_token'], 'UTF-8');
@@ -92,6 +90,7 @@ class AzSql (object):
         logger.error("Maximum retry attempts reached")
         raise pyodbc.OperationalError("Maximum retry attempts reached")
 
+
     # Perform a single step database operation (no transaction)
     def perform_db_operation(self, query, data_values=None, has_return=False, needs_commit=False) -> tuple:
         '''
@@ -129,6 +128,7 @@ class AzSql (object):
                 cursor.close()
             if 'conn' in locals() and conn is not None:
                 conn.close()
+      
         
     # Perform a database operation for multiple steps in a transaction   
     def perform_atomic_db_operation(self, query, data_values=None, has_return=False, close_cursor=True, close_conn=True, conn=None, cursor=None, needs_commit=True) -> tuple:
@@ -187,6 +187,7 @@ class AzSql (object):
                 cursor.close()
             if close_conn and 'conn' in locals() and conn is not None:
                 conn.close()
+
 
     # Create a DataFrame from the cursor return  
     def create_data_frame(self, cursor_return, column_names) -> pd.DataFrame:
