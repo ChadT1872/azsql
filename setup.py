@@ -16,7 +16,7 @@ setup(
         "pandas",
     ],
     classifiers=[
-        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.11",
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',
